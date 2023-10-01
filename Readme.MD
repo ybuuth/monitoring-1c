@@ -18,4 +18,4 @@
       - D:/work_logs/promtail:/var/log # реальный путь к логам: D:\work_logs\promtail\bf-log\*.log
       - C:/work_logs:/var/log/work_log
 
-    на Ваши пути
+  на Ваши пути
