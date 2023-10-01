@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    networks:
+      - "monitoring"
+    volumes:
+    # prometheus's DB files
+      - ./prometheus/prometheus_data:/prometheus
+    # конфигурационный файл с настройками prometheus
+      - ./prometheus/conf:/etc/prometheus/
+    command:
+    # указываем параметры запуска с настройками из конф файла
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    # храним метрики, дней (default 15d)
+      - '--storage.tsdb.retention.time=7d'
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - "monitoring"
+    volumes:
+    # Grafana's DB files
+      - ./grafana/grafana_data:/var/lib/grafana
+    #автоподключение источника данных prometheus, loki
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+  promtail:
+    image: grafana/promtail
+    container_name: promtail
+    restart: unless-stopped
+    ports:
+      - "9080:9080"
+    networks:
+      - "monitoring"
+    volumes:
+    # копируем логи
+      - D:/work_logs/promtail:/var/log
+      - C:/work_logs:/var/log/work_log
+    # настройки конф файла
+      - ./promtail/conf:/etc/promtail
+    # настраиваем файл, хранящий позицию на которой остановилось чтение
+      - ./promtail/positions:/tmp
+    command: 
+      - '--config.file=/etc/promtail/promtail-local-config.yaml'
+    #Режим отладки (--dry-run отключает передачу данных в loki)  
+    #  - '--inspect'
+    #  - '--dry-run'
+  loki:
+    image: grafana/loki
+    container_name: grafana-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    networks:
+      - "monitoring"
+    volumes:
+    # loki's DB
+      - ./loki/loki_data:/loki
+      # настройки конф файла
+      - ./loki/conf:/etc/loki
+    command: 
+      - '--config.file=/etc/loki/loki-local-config.yaml'
+  pushgateway:
+    image: prom/pushgateway
+    container_name: pushgateway
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
+networks:
+  monitoring:
+    name: 'grafana'
+volumes:
+# Хранилище данных grafana
+  grafana_data: {}
+# Хранилище данных prometheus
+  prometheus_data: {}
+# Хранилище данных loki
+  loki_data: {}
+
+
+  

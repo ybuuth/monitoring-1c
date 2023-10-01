@@ -1,0 +1,100 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: debug
+
+positions:
+# путь к файлу, который хранит позицию на которой остановилось чтение
+  filename: /tmp/positions.yaml
+
+clients:
+#host.docker.internal
+  - url: http://host.docker.internal:3100/loki/api/v1/push
+
+scrape_configs:
+- job_name: test-source
+  pipeline_stages:
+  - multiline:
+      firstline: '^.*[\d]{2}:[\d]{2}\.[\d]{6}-[\d]+'
+      max_wait_time: 3s
+      max_lines: 5000  
+  - regex:
+      expression: "^.*(?P<time>[\\d]{2}:[\\d]{2}.[\\d]+)-(?P<duration>[\\d]+?),(?P<event>\\S+?),.*process=(?P<process>\\S+?),.*p:processName=(?P<processName>\\S+?),.*Usr=(?P<user>.*?),"
+  - template:
+      source: timestamp
+      template: '{{ $val := .filename | regexFind "[1-9][0-9][0-1][0-9][0-3][0-9][0-2][0-9]" }}20{{ $val | substr 0 2 }}-{{ $val | substr 2 4 }}-{{ $val | substr 4 6 }}T{{ $val | substr 6 8 }}:{{ .time }}+03:00'
+  - labels:
+      event:
+      user:
+      process:
+      processName:
+      #timestamp:
+  - timestamp:
+      format: RFC3339Nano
+      source: timestamp
+  - labeldrop:
+      - filename
+#      - job
+#- metrics:
+#     event_duration:
+#       type: Counter
+#       description: "Event duration from ones tj"
+#       source: duration
+#       prefix: promtail_onestj_
+#       max_idle_duration: 24h
+#       config:
+#         action: add
+      
+  static_configs:
+  - targets:
+      - host.docker.internal
+    #  - grafana-loki
+    labels:
+      job: test_logs
+      __path__: var/log/bf-log/*log
+      
+- job_name: ones-tj
+  pipeline_stages:
+  - multiline:
+      firstline: '^.*[\d]{2}:[\d]{2}\.[\d]{6}-[\d]+'
+      max_wait_time: 3s
+      max_lines: 5000  
+  - regex:
+      expression: "^.*(?P<time>[\\d]{2}:[\\d]{2}.[\\d]+)-(?P<duration>[\\d]+?),(?P<event>\\S+?),.*process=(?P<process>\\S+?),"
+  - regex:
+      expression: "^.*p:processName=(?P<processName>\\S+?),"
+  - regex:
+      expression: "^.*Usr=(?P<user>.*?)," 
+  - template:
+      source: timestamp
+      template: '{{ $val := .filename | regexFind "[1-9][0-9][0-1][0-9][0-3][0-9][0-2][0-9]" }}20{{ $val | substr 0 2 }}-{{ $val | substr 2 4 }}-{{ $val | substr 4 6 }}T{{ $val | substr 6 8 }}:{{ .time }}+04:00'
+  - labels:
+      event:
+      user:
+      process:
+      processName:
+      duration:
+    #  timestamp:
+  - timestamp:
+      format: RFC3339Nano
+      source: timestamp
+  - labeldrop:
+      - filename
+#      - job
+#- metrics:
+#     event_duration:
+#       type: Counter
+#       description: "Event duration from ones tj"
+#       source: duration
+#       prefix: promtail_onestj_
+#       max_idle_duration: 24h
+#       config:
+#         action: add
+      
+  static_configs:
+  - targets:
+      - host.docker.internal
+    #  - grafana-loki
+    labels:
+      job: ones-tj
+      __path__: var/log/work_log/rphost*/*.log
