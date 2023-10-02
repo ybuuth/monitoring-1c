@@ -20,7 +20,7 @@ services:
     # храним метрики, дней (default 15d)
       - '--storage.tsdb.retention.time=7d'
   grafana:
-    image: grafana/grafana-enterprise
+    image: grafana/grafana-enterprise:main
     container_name: grafana
     restart: unless-stopped
     ports:
@@ -33,7 +33,7 @@ services:
     #автоподключение источника данных prometheus, loki
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
   promtail:
-    image: grafana/promtail
+    image: grafana/promtail:main-41eb82b
     container_name: promtail
     restart: unless-stopped
     ports:
@@ -54,7 +54,7 @@ services:
     #  - '--inspect'
     #  - '--dry-run'
   loki:
-    image: grafana/loki
+    image: grafana/loki:main-41eb82b
     container_name: grafana-loki
     restart: unless-stopped
     ports:
@@ -69,7 +69,7 @@ services:
     command: 
       - '--config.file=/etc/loki/loki-local-config.yaml'
   pushgateway:
-    image: prom/pushgateway
+    image: prom/pushgateway:v1.6.2
     container_name: pushgateway
     restart: unless-stopped
     ports:
